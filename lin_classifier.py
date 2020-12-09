@@ -19,7 +19,14 @@ def pred_log(logreg, X_train, y_train, X_test, flag=False):
     :return: A two elements tuple containing the predictions and the weightning matrix
     """
     # ------------------ IMPLEMENT YOUR CODE HERE:-----------------------------
-
+    logreg.fit(X_train,y_train)
+    y_pred_log=logreg.predict(X_test)
+    #w_log=logreg.intercept_ #trying
+    w_log=logreg.coef_ #creates 3x20
+    
+    if flag==True:
+        y_pred_log=logreg.predict_proba(X_test)
+    
     # -------------------------------------------------------------------------
     return y_pred_log, w_log
 
@@ -75,15 +82,26 @@ def cv_kfold(X, y, C, penalty, K, mode):
     """
     kf = SKFold(n_splits=K)
     validation_dict = []
+    t={}
     for c in C:
         for p in penalty:
+            t['C']=c
+            t['penalty']= p
             logreg = LogisticRegression(solver='saga', penalty=p, C=c, max_iter=10000, multi_class='ovr')
             loss_val_vec = np.zeros(K)
             k = 0
             for train_idx, val_idx in kf.split(X, y):
                 x_train, x_val = X.iloc[train_idx], X.iloc[val_idx]
-        # ------------------ IMPLEMENT YOUR CODE HERE:-----------------------------
-
+                y_train,y_test=(y[train_idx], y[val_idx])
+                y_pred,wq= pred_log(logreg, nsd(x_train, mode=mode,flag=False),y_train,nsd(x_val, mode=mode,flag=False) ,flag=True)
+                clas= logreg.classes_
+                loss_val_vec[k]= log_loss(y_test, y_pred,labels=clas)
+                k= k+1
+                
+            t['mu']=loss_val_vec.mean()
+            t['sigma']=loss_val_vec.std()
+            validation_dict.append(t)
+            t={}
         # --------------------------------------------------------------------------
     return validation_dict
 
@@ -98,7 +116,22 @@ def odds_ratio(w, X, selected_feat='LB'):
              odds_ratio: the odds ratio of the selected feature and label
     """
     # ------------------ IMPLEMENT YOUR CODE HERE:-----------------------------
-
+    
+    w_normal=w[0,:] #takes only the first row
+    idx=X.columns.get_loc(selected_feat)
+    odds=(np.exp(X@w_normal)).median()
+    odd_ratio=(np.exp(w_normal[idx]))
+    
+    
+    #vec=numpy.dot(x,W.T); #x-X?, w-W? , where is selected feat?
+    #vec=np.dot(X,w.T); #corrected line?
+    #exp_vec=np.exp(vec)
+    #odd_ratio=np.median(exp._vec)
+  #  #print(odd_ratio)
+   # exp_wt=np.exp(np.transpose(w))
+   # p=np.meadian(1/(1+exp_wt))
+   # odds=(p/(1-p))
+    #odds=0.1
     # --------------------------------------------------------------------------
 
     return odds, odd_ratio
